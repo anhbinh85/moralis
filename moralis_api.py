@@ -426,3 +426,114 @@ def get_wallet_pnl(address, chain, api_key):
     except Exception as e:
         print(f"Error getting wallet PnL: {e}")
         return None
+    
+@cached(moralis_cache)
+def get_wallet_pnl_breakdown(address, chain, api_key):
+    print("Fetching wallet PnL breakdown from API (not cached)")
+    if not api_key:
+        print("Error: API key not loaded from config.ini.")
+        return None
+
+    try:
+        # EVM: Use the get_wallet_pnl from evm_api
+        result = evm_api.wallets.get_wallet_profitability(
+            api_key=api_key,
+            params={
+                "address": address,
+                "chain": chain,
+            },
+        )
+
+        # Check if the result is a dictionary and contains the 'result' key
+        if isinstance(result, dict) and 'result' in result:
+            pnl_data = []
+            for pnl in result.get('result', []):
+                pnl_data_breakdown = [
+                    {
+                        "Metric": "token_address",
+                        "Value": pnl.get("token_address", "N/A")
+                    },
+                    {
+                        "Metric": "total_trade_volume",
+                        "Value": f"{float(pnl.get('total_trade_volume', 0)):,.2f}"
+                    },
+                    {
+                        "Metric": "total_realized_profit_usd",
+                        "Value": f"{float(pnl.get('total_realized_profit_usd', 0)):,.2f}"
+                    },
+                    {
+                        "Metric": "Total Realized Profit (%)",
+                        "Value": f"{float(pnl.get('total_realized_profit_percentage', 0)):,.2f}%" if pnl.get('total_realized_profit_percentage') is not None else "N/A"
+                    },
+                    {
+                        "Metric": "total_sold_volume_usd",
+                        "Value": f"{float(pnl.get('total_sold_volume_usd', 0)):,.2f}"
+                    },
+                    {
+                        "Metric": "total_bought_volume_usd",
+                        "Value": f"{float(pnl.get('total_bought_volume_usd', 0)):,.2f}"
+                    },
+                    {
+                        "Metric": "avg_buy_price_usd",
+                        "Value": f"{float(pnl.get('avg_buy_price_usd', 0)):,.2f}"
+                    },
+                    {
+                        "Metric": "avg_sell_price_usd",
+                        "Value": f"{float(pnl.get('avg_sell_price_usd', 0)):,.2f}"
+                    },
+                    {
+                        "Metric": "total_tokens_bought",
+                        "Value": f"{float(pnl.get('total_tokens_bought', 0)):,.2f}"
+                    },
+                    {
+                        "Metric": "total_tokens_sold",
+                        "Value": f"{float(pnl.get('total_tokens_sold', 0)):,.2f}"
+                    },
+                    {
+                        "Metric": "avg_cost_of_quantity_sold",
+                        "Value": f"{float(pnl.get('avg_cost_of_quantity_sold', 0)):,.2f}"
+                    },
+                    {
+                        "Metric": "count_of_trades",
+                        "Value": pnl.get("count_of_trades", "N/A")
+                    },
+                    {
+                        "Metric": "total_buys",
+                        "Value": pnl.get("total_buys", "N/A")
+                    },
+                    {
+                        "Metric": "total_sells",
+                        "Value": pnl.get("total_sells", "N/A")
+                    },
+                    {
+                        "Metric": "name",
+                        "Value": pnl.get("name", "N/A")
+                    },
+                    {
+                        "Metric": "symbol",
+                        "Value": pnl.get("symbol", "N/A")
+                    },
+                    {
+                        "Metric": "possible_spam",
+                        "Value": pnl.get("possible_spam", "N/A")
+                    },
+                    {
+                        "Metric": "verified_contract",
+                        "Value": pnl.get("verified_contract", "N/A")
+                    },
+                    {
+                        "Metric": "security_score",
+                        "Value": pnl.get("security_score", "N/A")
+                    },
+                ]
+
+                pnl_data.append(pnl_data_breakdown)
+
+            return pnl_data
+        else:
+            print("Error: Unexpected response format from get_wallet_pnl_breakdown()")
+            return None
+
+    except Exception as e:
+        print(f"Error getting wallet PnL: {e}")
+        return None

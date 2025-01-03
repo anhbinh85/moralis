@@ -3,8 +3,9 @@ from utils import format_balance, format_supply, format_nft_metadata
 from moralis import evm_api
 from cachetools import TTLCache, cached
 import time
-from moralis_api import get_api_key, get_native_balance, get_token_balances, get_wallet_transactions, get_nft_transfers, get_nfts, get_erc20_token_transfers, get_wallet_net_worth, get_wallet_pnl
-
+from moralis_api import get_api_key, get_native_balance, get_token_balances, \
+    get_wallet_transactions, get_nft_transfers, get_nfts, \
+    get_erc20_token_transfers, get_wallet_net_worth, get_wallet_pnl, get_wallet_pnl_breakdown
 # Cache for Moralis API responses with a TTL of 1 minute (60 seconds)
 moralis_cache = TTLCache(maxsize=100, ttl=60)
 
@@ -42,6 +43,11 @@ def get_cached_wallet_net_worth(address, chain, api_key, exclude_spam=True, excl
 def get_cached_wallet_pnl(address, chain, api_key):
     print("Fetching wallet pnl from API (not cached)")
     return get_wallet_pnl(address, chain, api_key)
+
+@cached(moralis_cache)
+def get_cached_wallet_pnl_breakdown(address, chain, api_key):
+    print("Fetching wallet pnl BREAKDOWN from API (not cached)")
+    return get_wallet_pnl_breakdown(address, chain, api_key)
 
 def main():
     st.title("Whale Wallet Explorer")
@@ -190,6 +196,16 @@ def main():
                     st.dataframe(pnl_data, use_container_width=True)
                 else:
                     st.info("Could not retrieve wallet PnL.")
+
+    if st.button("Get Wallet PnL Breakdown"):
+            with st.spinner("Fetching wallet PnL Breakdown..."):
+                pnl_data = get_cached_wallet_pnl_breakdown(wallet_address, chain, api_key)
+                if pnl_data and isinstance(pnl_data, list):
+                    for token_pnl in pnl_data:
+                        st.write(f"Wallet PnL for Token: {token_pnl[0]['Value'] if token_pnl[0]['Metric'] == 'token_address' else 'Unknown'}:")
+                        st.dataframe(token_pnl, use_container_width=True)
+                else:
+                    st.info("Could not retrieve wallet PnL or invalid response format.")
 
 if __name__ == "__main__":
     main()
